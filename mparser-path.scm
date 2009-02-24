@@ -1,0 +1,6 @@
+(define mparser-path "Mparser-r3")
+(include "Mparser-r3/streams#.scm")
+(include "Mparser-r3/language#.scm")
+(include "Mparser-r3/monad#.scm")
+(include "Mparser-r3/kernel#.scm")
+(include "Mparser-r3/extras#.scm")

@@ -1,0 +1,20 @@
+(##namespace
+ ("kernel#"
+  char
+  digit
+  upcase
+  locase
+  interval
+  alpha
+  whitespace
+  eos
+  any
+  test-token
+  fail
+  token-stream
+  continuation
+  failure
+  make-parser-exception
+  parser-exception?
+  parser-exception-reason
+  ))

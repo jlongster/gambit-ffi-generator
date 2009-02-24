@@ -1,0 +1,164 @@
+A combinatorial parser library based on monads.
+this package is composed of 
+
+simple streams,
+    streams#.scm
+    streams.scm
+
+monad macro stuff,
+    reflecti#.scm 
+    monad#.scm
+    
+parser language
+    language#.scm
+
+some core parsers
+    kernel#.scm 
+    kernel.scm 
+
+some extensions about repetition parsing:
+    extras#.scm
+    extras.scm
+
+expression parsing
+    expressions#.scm
+    expressions.scm
+
+some examples:
+    number.scm
+    json.scm
+    calc.scm
+
+Examples:
+  see the file number.scm
+  $ gsi
+  > (load "streams") (load "kernel") (load "number")
+  > (string->number* "123.456e-789") ->
+  
+  or file json.scm
+  $ gsi
+  > (load "streams") (load "kernel") (load "extras") (load "json")
+  > (define json-obj (json->scheme "{x:10, y:[1,2]}"))
+  > (table-ref json-obj "x") 
+              -> 10
+  > (table-ref json-obj "y")
+              -> #(1 2)
+    
+  or file calc.scm
+  $ gsi
+  > (load "streams") (load "kernel") (load "expressions") (load "calc")
+  ;; the postfix operator ^ is square operator. 2^ -> 4 3^ -> 9
+  > (calc "1+2^-5*(10+2)/3")
+            -> -15
+
+Usage:
+   Files that end with '#.scm' are macro libraries or namespace definitions,
+   so need to be included i.e. (include "kernel#.scm"),
+   the others are code libraries and need to be loaded (load "kernel").
+   
+   (include "streams#.scm") 
+   (load "streams")
+
+   (include "kernel#.scm")
+   (load "kernel")
+	
+   (include "language#.scm")
+
+   (include "extras#.scm")
+   (load "extras")
+
+   ;; to define a parser   
+   (define a-parser (parser (<args> ...) <parser-definition>)) ;; or
+   (define-parser (a-parser <args> ...) <parser-definition>)
+
+   ;; to run a parser on a stream
+   (run (my-parser) (string->stream "string to be parsed"))
+
+Parser definition language:
+  to define a new parser:
+  (define my-parser (<symbol> ...) <parser-expression>)) ;; or
+  (define-parser (my-parser <symbol> ...) <parser-expression>)
+  a parser expression is one of 
+  (>> <parser-expression> ...)
+  (<> <parser-expression> ...)
+  (<*> <parser-expression> ...)
+  (return <scheme-expression>)
+  (if <scheme-expression> <parser-expression> <parser-expression>)
+  (let ((<symbol> <scheme-expression>) ...) <parser-expression>)
+  (let* ((<symbol> <scheme-expression>) ...) <parser-expression>)
+  (letrec ((<symbol> <scheme-expression>) ...) <parser-expression>)
+  (<symbol> <parameter> ...)
+
+  >> OPERATOR
+  the >> operator is used to concatenate 2 parser,
+  so if a recognize string "a" and b recognize string "b" 
+  the parser ab
+  (define ab (parser () (>> (a) (b))))
+  recognize the string "ab"
+  another way you could use >> is to take intermediate parser result,
+  so 
+  (define-parser (c)
+     (>> (<- p0 (ab))
+         <do something with p0>))
+
+  being this parser based on monads this corresponds to bind operation.
+
+  <> OPERATOR
+  this is the choice operator, so if a recognize the string "a",
+  "b" recognize the string "b"
+  (define d (parser () (<> a b)))
+  d recognize the string "a" OR the string "b".
+  substantially it first tries to apply parser a, if it succeed it 
+  returns the value returned by a and consume the chars consumed by a,
+  if it fails tries with b.
+  For performance reason if the first parser succeed then the second
+  parser is never tried even if a successive parser fail.
+
+  <*> OPERATOR
+  this is the same of <> but if a successive parser fails it tries
+  even the others choices. The use of this could lead to memory leaks.
+
+  return OPERATOR
+  (define ret (parser () (return 10)))
+  this is the return operator in monads, the resulting parser is a
+  parser that returns 10 and doesn't consume any stream char.
+  
+Core parsers
+  (char c) -> a parser that recognize c and return c
+  (digit) ->  a parser that recognize a digit char and return the read char,
+  (alpha) ->  a parser that recognize an alphabetic char and return the read char,
+  (upcase) -> a parser that recognize an uppercase char and return the read char,
+  (locase) -> a parser that recognize a lowercase char and return the read char,
+  (interval lo up) -> a parser that recognize a char that is contained in the 
+              interval lo <-> up extremes included.
+  (whitespace) -> a parser that recognize a whitespace.
+  (eos) -> a parser that recognize an end of stream char and retun it 
+          (the end of stream char is the #\nul char, normally a stream contains at the
+           end an infinite sequence of these chars)
+  (any) -> recognize any char that is'nt eos.
+  (test-token t?) -> t? is a function that applied to a char returns true or false,
+         if return true the char is recognized and then returned, else the created parser
+         fails.
+
+  (fail r) -> this parser just fails, and pass r as the failure reason.
+   
+  (token-stream) -> return the not yet consumed part of the stream.
+
+Run a parser
+ (run <parser-expression> <stream>)
+ parser expression is the same of parser definitions,
+ <stream> is from streams package.
+ returns the value returned by parser expression, or 
+ raises a parser-exception if parser fails.
+
+Building a stream
+ (string->steam <string>)
+ (port->stream <input-port>)
+ (list->stream <list>)
+ (stream <a> <b> ...)
+
+Changelog:
+
+r2: added expression parser based on precedence climbing.
+r3: parser language simplification
+    some file renaming.
